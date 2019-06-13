@@ -1,0 +1,4 @@
+2019-06-13 13:19:10,981 [INFO] GET [wq]: qwe
+2019-06-13 13:19:11,756 [INFO] GET 200: http://t2ru-ds-prod-01:7003/dyn/admin/nucleus/atg/commerce/endeca/index/ProductCatalogSimpleIndexingAdmin/?histIdx=0
+2019-06-13 14:29:43,230 [INFO] GET [wq]: qwe
+2019-06-13 14:29:44,234 [INFO] GET 200: http://t2ru-ds-prod-01:7003/dyn/admin/nucleus/atg/commerce/endeca/index/ProductCatalogSimpleIndexingAdmin/?histIdx=0

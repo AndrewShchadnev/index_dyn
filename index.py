@@ -8,6 +8,8 @@ from argparse import ArgumentParser
 from lxml import html
 from bs4 import BeautifulSoup
 import sqlalchemy
+from sqlalchemy import create_engine
+from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey
 
 # Define workdir
 workdir = os.path.dirname(os.path.realpath(__file__))
@@ -60,7 +62,8 @@ def BaseLineStatus():
 
     #th = ('Server Id', 'Start Time', 'End Time', 'Duration', 'Status', 'Success')
     #super = dict((key,value) for key in th )
-
+    
+    engine = create_engine('sqlite:///:memory:', echo=True)
 
 
 
