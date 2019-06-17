@@ -104,18 +104,10 @@ new_search = BaseLineStatus()
 if new_search:
     print('index already started on',
           new_search['inode'], 'in', new_search['time'])
-else:
-    print('Index not running now')
-
-
-test = dict()
-test['inode'] = 't2ru-ds-prod-01+production'
-test['time'] = '2019-06-13 17:43:51.55'
-print(BaseLineStatusByElement(new_search))
-try:
     while BaseLineStatusByElement(new_search)['Status'] == 'PENDING':
         print (BaseLineStatusByElement(new_search))
         time.sleep(10)
-except TypeError:
-    print('Index not running now')       
-print(BaseLineStatusByElement(new_search))
+    print(BaseLineStatusByElement(new_search))
+    
+else:
+    print('Index not running now')
