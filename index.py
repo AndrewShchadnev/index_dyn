@@ -7,6 +7,7 @@ from logging.handlers import RotatingFileHandler
 from argparse import ArgumentParser
 from lxml import html
 import re
+import time
 
 # Define workdir
 workdir = os.path.dirname(os.path.realpath(__file__))
@@ -43,22 +44,58 @@ else:
     )
 
 
-def BaseLineStatus():
+def BaseLineStatus(IsStage=False):
     answer = dict()
-    r = requests.get(config['URLS']['INDEX_URL'], auth=HTTPBasicAuth(
-        config['AUTH']['LOGIN'], config['AUTH']['PASS']))
-    logging.info('GET {}: {}'.format(r.status_code, r.url))
-    tree = html.fromstring(r.text)
-    for tbl in tree.xpath('//table'):
-        elements = tbl.xpath('.//tr/td//text()')
-        pattern = r"t2ru-ds(-2)?-prod-[0-11]*\+production"
-        if re.search(pattern, str(elements)):
-            if elements.count('PENDING') > 0:
-                pos = elements.index('PENDING')
-                answer['inode'] = elements[pos - 4]
-                answer['time'] = elements[pos - 3]
-            else:
-                answer = False
+    if IsStage is True:
+        r = requests.get(config['URLS']['INDEX_URL_STAGE'], auth=HTTPBasicAuth(
+            config['AUTH']['LOGIN'], config['AUTH']['PASS']))
+    else:
+        r = requests.get(config['URLS']['INDEX_URL'], auth=HTTPBasicAuth(
+            config['AUTH']['LOGIN'], config['AUTH']['PASS']))
+        logging.info('GET {}: {}'.format(r.status_code, r.url))
+        tree = html.fromstring(r.text)
+        for tbl in tree.xpath('//table'):
+            elements = tbl.xpath('.//tr/td//text()')
+            pattern = r"t2ru-ds(-2)?-prod-[0-11]*\+production"
+            if re.search(pattern, str(elements)):
+                if elements.count('PENDING') > 0:
+                    pos = elements.index('PENDING')
+                    answer['inode'] = elements[pos - 4]
+                    answer['time'] = elements[pos - 3]
+                else:
+                    answer = False
+        return answer
+
+
+def BaseLineStatusByElement(dictin):
+    if dictin is False:
+        answer = False
+    else:
+        answer = dictin
+        r = requests.get(config['URLS']['INDEX_URL'], auth=HTTPBasicAuth(
+            config['AUTH']['LOGIN'], config['AUTH']['PASS']))
+        logging.info('GET {}: {}'.format(r.status_code, r.url))
+        tree = html.fromstring(r.text)
+        for tbl in tree.xpath('//table'):
+            elements = tbl.xpath('.//tr/td//text()')
+            pattern = r"t2ru-ds(-2)?-prod-[0-11]*\+production"
+            if re.search(pattern, str(elements)):
+                flag = True
+                start = 0
+                while flag is True:
+                    try:
+                        pos = elements.index(dictin['inode'], start)
+                    except ValueError:
+                        flag = False
+                        answer = False
+                    if elements[pos + 1] == dictin['time']:
+                        answer['Success'] = elements[pos + 5]
+                        answer['Status'] = elements[pos + 4]
+                        answer['Duration'] = elements[pos + 3]
+                        answer['End Time'] = elements[pos + 2]
+                        flag = False
+                    else:
+                        start = pos + 1
     return answer
 
 
@@ -69,3 +106,14 @@ if new_search:
           new_search['inode'], 'in', new_search['time'])
 else:
     print('Index not running now')
+
+
+test = dict()
+test['inode'] = 't2ru-ds-prod-01+production'
+test['time'] = '2019-06-13 17:43:51.55'
+print(BaseLineStatusByElement(new_search))
+if BaseLineStatusByElement(new_search) is not False:
+    while BaseLineStatusByElement(new_search)['Status'] == 'PENDING':
+        print(BaseLineStatusByElement(new_search))
+        time.sleep(10)
+print(BaseLineStatusByElement(new_search))
