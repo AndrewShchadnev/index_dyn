@@ -117,5 +117,5 @@ try:
         print (BaseLineStatusByElement(new_search))
         time.sleep(10)
 except TypeError:
-    print('Index not running now')        
+    print('Index not running now')       
 print(BaseLineStatusByElement(new_search))
