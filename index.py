@@ -44,23 +44,27 @@ else:
     )
 
 
-def BaseLineStatus():
+def BaseLineStatus(isStage = False):
     answer = dict()
-    r = requests.get(config['URLS']['INDEX_URL'], auth=HTTPBasicAuth(
+    if isStage == True:
+        r = requests.get(config['URLS_STAGE']['INDEX_URL_STAGE'], auth=HTTPBasicAuth(
         config['AUTH']['LOGIN'], config['AUTH']['PASS']))
-    logging.info('GET {}: {}'.format(r.status_code, r.url))
-    tree = html.fromstring(r.text)
-    for tbl in tree.xpath('//table'):
-        elements = tbl.xpath('.//tr/td//text()')
-        pattern = r"t2ru-ds(-2)?-prod-[0-11]*\+production"
-        if re.search(pattern, str(elements)):
-            if elements.count('PENDING') > 0:
-                pos = elements.index('PENDING')
-                answer['inode'] = elements[pos - 4]
-                answer['time'] = elements[pos - 3]
-            else:
-                answer = False
-    return answer
+    else:
+        r = requests.get(config['URLS']['INDEX_URL'], auth=HTTPBasicAuth(
+        config['AUTH']['LOGIN'], config['AUTH']['PASS']))
+        logging.info('GET {}: {}'.format(r.status_code, r.url))
+        tree = html.fromstring(r.text)
+        for tbl in tree.xpath('//table'):
+            elements = tbl.xpath('.//tr/td//text()')
+            pattern = r"t2ru-ds(-2)?-prod-[0-11]*\+production"
+            if re.search(pattern, str(elements)):
+                if elements.count('PENDING') > 0:
+                    pos = elements.index('PENDING')
+                    answer['inode'] = elements[pos - 4]
+                    answer['time'] = elements[pos - 3]
+                else:
+                    answer = False
+        return answer
 
 
 def BaseLineStatusByElement(dictin):
@@ -108,7 +112,10 @@ test = dict()
 test['inode'] = 't2ru-ds-prod-01+production'
 test['time'] = '2019-06-13 17:43:51.55'
 print(BaseLineStatusByElement(new_search))
-while BaseLineStatusByElement(new_search)['Status'] == 'PENDING':
-    print(BaseLineStatusByElement(new_search))
-    time.sleep(10)
+try:
+    while BaseLineStatusByElement(new_search)['Status'] == 'PENDING':
+        print (BaseLineStatusByElement(new_search))
+        time.sleep(10)
+except TypeError:
+    print('Index not running now')        
 print(BaseLineStatusByElement(new_search))
