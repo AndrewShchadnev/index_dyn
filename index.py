@@ -1,5 +1,5 @@
-import os
-import configparser
+from pathlib import Path
+from configparser import ConfigParser
 import requests
 from requests.auth import HTTPBasicAuth
 import logging
@@ -10,13 +10,11 @@ import re
 import time
 
 # Define workdir
-workdir = os.path.dirname(os.path.realpath(__file__))
+workdir = Path(__file__).resolve().parent
 
 # Define our config file
-config = configparser.ConfigParser()
-config.read(os.path.join(os.path.dirname(
-    os.path.realpath(__file__)), "main.conf"))
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+config = ConfigParser()
+config.read(workdir / "main.conf")
 
 
 # Preparing arguments
@@ -37,27 +35,34 @@ else:
         level='INFO',
         handlers=[
             RotatingFileHandler(
-                filename=os.path.join(workdir, 'log.log'),
-                maxBytes=int(config['LOG_ROTATE']['MaxBytes']),
-                backupCount=int(config['LOG_ROTATE']['BackupCount'])
+                filename=(workdir / 'log.log').as_posix(),
+                maxBytes=config['LOG_ROTATE'].getint('MaxBytes', fallback=1024),
+                backupCount=config['LOG_ROTATE'].getint('BackupCount', fallback=2)
             )]
     )
 
+pattern_c = re.compile(r't2ru-ds(-2)?-prod-[0-11]*\+production')
 
-def BaseLineStatus(isStage = False):
+
+def BaseLineStatus(isStage=False):
     answer = dict()
-    if isStage == True:
-        r = requests.get(config['URLS_STAGE']['INDEX_URL_STAGE'], auth=HTTPBasicAuth(
-        config['AUTH']['LOGIN'], config['AUTH']['PASS']))
+    if isStage:
+        r = requests.get(
+            config['URLS_STAGE']['INDEX_URL_STAGE'],
+            auth=HTTPBasicAuth(
+                config['AUTH']['LOGIN'],
+                config['AUTH']['PASS']))
     else:
-        r = requests.get(config['URLS']['INDEX_URL'], auth=HTTPBasicAuth(
-        config['AUTH']['LOGIN'], config['AUTH']['PASS']))
+        r = requests.get(
+            config['URLS']['INDEX_URL'],
+            auth=HTTPBasicAuth(
+                config['AUTH']['LOGIN'],
+                config['AUTH']['PASS']))
         logging.info('GET {}: {}'.format(r.status_code, r.url))
         tree = html.fromstring(r.text)
         for tbl in tree.xpath('//table'):
             elements = tbl.xpath('.//tr/td//text()')
-            pattern = r"t2ru-ds(-2)?-prod-[0-11]*\+production"
-            if re.search(pattern, str(elements)):
+            if pattern_c.search(str(elements)):
                 if elements.count('PENDING') > 0:
                     pos = elements.index('PENDING')
                     answer['inode'] = elements[pos - 4]
@@ -72,14 +77,16 @@ def BaseLineStatusByElement(dictin):
         answer = False
     else:
         answer = dictin
-        r = requests.get(config['URLS']['INDEX_URL'], auth=HTTPBasicAuth(
-            config['AUTH']['LOGIN'], config['AUTH']['PASS']))
+        r = requests.get(
+            config['URLS']['INDEX_URL'],
+            auth=HTTPBasicAuth(
+                config['AUTH']['LOGIN'],
+                config['AUTH']['PASS']))
         logging.info('GET {}: {}'.format(r.status_code, r.url))
         tree = html.fromstring(r.text)
         for tbl in tree.xpath('//table'):
             elements = tbl.xpath('.//tr/td//text()')
-            pattern = r"t2ru-ds(-2)?-prod-[0-11]*\+production"
-            if re.search(pattern, str(elements)):
+            if pattern_c.search(str(elements)):
                 flag = True
                 start = 0
                 while flag is True:
@@ -105,9 +112,8 @@ if new_search:
     print('index already started on',
           new_search['inode'], 'in', new_search['time'])
     while BaseLineStatusByElement(new_search)['Status'] == 'PENDING':
-        print (BaseLineStatusByElement(new_search))
+        print(BaseLineStatusByElement(new_search))
         time.sleep(10)
     print(BaseLineStatusByElement(new_search))
-    
 else:
     print('Index not running now')
